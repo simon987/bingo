@@ -1,3 +1,5 @@
 .idea/
+*.iml
 __pychache__
 *.pyc
+*.log

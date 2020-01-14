@@ -2,12 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Test</title>
+    <title>TODO: title</title>
+    <style>
+        body, html {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        #room-prompt {
+            height: 50%;
+            overflow: hidden;
+            margin: auto;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+        }
+
+        input {
+            line-height: 3;
+            padding: 0.2rem 0.5rem;
+        }
+
+        .info {
+            float: right;
+            padding: 0.5rem;
+        }
+    </style>
 </head>
 <body>
 
+<div id="room-prompt">
+    <h1>Bingo</h1>
+    <form onsubmit="onSubmit(); return false">
+        <input id="room-input" type="text" placeholder="Join/create room">
+    </form>
+</div>
+
+<div class="info">
+    TODO: info
+</div>
 <script>
 
+function isAlphanumeric(c) {
+    return "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_".indexOf(c) > -1;
+}
+
+window.onload = function () {
+    const input = document.getElementById("room-input");
+    input.addEventListener("keydown", e => {
+        if (!isAlphanumeric(e.key) && e.key !== "Backspace" && e.key !== "Enter") {
+            e.preventDefault();
+        }
+    })
+}
+
+function onSubmit() {
+    const room = document.getElementById("room-input").value;
+    window.location = "/" + room;
+}
 </script>
 </body>
 </html>
