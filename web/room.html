@@ -133,7 +133,7 @@ input.addEventListener("keydown", e => {
     if (!isAlphanumeric(e.key) && e.key !== "Backspace" && e.key !== "Enter") {
         e.preventDefault();
     }
-})
+});
 
 function createGameModal() {
     document.getElementById("create-game").style.display = "block";
@@ -152,7 +152,7 @@ function onCreateGameSubmit() {
         "maximum_size": maximumSize,
         "middle_free": middleFree,
         "pool": pool.split(/\s+/).map(w => w.trim())
-    })
+    });
     return false;
 }
 
@@ -166,11 +166,11 @@ function selfName() {
 
 socket.on("message", msg => {
     TEXT._display(msg.text, msg.timeout)
-})
+});
 
 socket.on("end_message", msg => {
     alert(msg.text)
-})
+});
 
 socket.on("game_state", msg => {
     if (msg.state === "PLAYING") {
@@ -183,7 +183,7 @@ socket.on("game_state", msg => {
     } else if (msg.state === "ENDED") {
         socket.emit("get_end_message")
     }
-})
+});
 
 socket.on("card_state", msg => {
     if (CARDS.hasOwnProperty("SELF")) {
@@ -192,11 +192,11 @@ socket.on("card_state", msg => {
         } else {
             // Add other card
             let card = new BingoCard(msg.card.oid, msg.parent, XSCALE, YSCALE);
-            card._update(msg.card.cells)
+            card._update(msg.card.cells);
             app.stage.addChild(card);
             CARDS[msg.card.oid] = card;
 
-            NEXT_SIDE = (Object.keys(CARDS).length - 1) % 2
+            NEXT_SIDE = (Object.keys(CARDS).length - 1) % 2;
             card.x = (CARD_WIDTH * XSCALE + CARD_PAD) * NEXT_COL[NEXT_SIDE] + CARD_PAD;
             card.y = (CARD_HEIGHT * YSCALE + CARD_PAD) * NEXT_ROW[NEXT_SIDE] + CARD_PAD;
 
@@ -211,19 +211,19 @@ socket.on("card_state", msg => {
             }
         }
     }
-})
+});
 
 socket.on("get_card_rsp", msg => {
     // Add self card
     let card = new BingoCard(msg.card.oid, msg.parent, 1.0);
-    card._update(msg.card.cells)
+    card._update(msg.card.cells);
     card.x = WIDTH / 2 - (CARD_WIDTH / 2);
     card.y = HEIGHT / 2 - (CARD_HEIGHT / 2);
     app.stage.addChild(card);
 
     CARDS[msg.card.oid] = card;
     CARDS["SELF"] = card;
-})
+});
 
 function createUser() {
     document.getElementById("create-user").style.display = "block";
@@ -235,7 +235,7 @@ function isAlphanumeric(c) {
 
 function onCreateUserSubmit() {
     const name = document.getElementById("name").value;
-    localStorage.setItem("name", name)
+    localStorage.setItem("name", name);
 
     socket.emit("join", {
         room: ROOM,
@@ -253,8 +253,8 @@ socket.on("join_rsp", msg => {
 
     document.getElementById("create-user").style.display = "none";
 
-    localStorage.setItem("oid", msg.oid)
-    document.title = msg.oid
+    localStorage.setItem("oid", msg.oid);
+    document.title = msg.oid;
 
     if (msg.state === "CREATING") {
         createGameModal();
@@ -281,10 +281,6 @@ socket.on("connect", () => {
         createUser();
     }
 });
-
-socket.on("room_join", msg => {
-    console.log(msg);
-})
 
 const app = new PIXI.Application(
     {antialias: false, width: WIDTH, height: HEIGHT, resolution: 2, resizeTo: window}
@@ -321,12 +317,12 @@ function makeCell(cell, size, card_oid, xscale, yscale) {
         g.on("mouseover", () => {
             g._color = CELL_COLOR_HOVER;
             g._update();
-        })
+        });
 
         g.on("mouseout", () => {
             g._color = g._baseColor;
             g._update();
-        })
+        });
 
         g.on("click", () => {
             socket.emit("cell_click", {
@@ -348,7 +344,7 @@ function makeCell(cell, size, card_oid, xscale, yscale) {
             ((xscale * CARD_WIDTH - CELL_PAD) / size - CELL_PAD),
             ((yscale * CARD_HEIGHT - CELL_PAD) / size - CELL_PAD)
         );
-        g.endFill()
+        g.endFill();
 
         if (g.children.length === 0) {
             const maxWidth = g.width - 4;
@@ -365,7 +361,7 @@ function makeCell(cell, size, card_oid, xscale, yscale) {
                     wordWrapWidth: maxWidth,
                 }
             );
-            text.anchor.set(0.5, 0.5)
+            text.anchor.set(0.5, 0.5);
             text.x = g.width / 2;
             text.y = g.height / 2;
 
@@ -374,9 +370,9 @@ function makeCell(cell, size, card_oid, xscale, yscale) {
                 g.addChild(text);
             }
         }
-    }
+    };
 
-    g._update()
+    g._update();
     return g
 }
 
@@ -398,7 +394,7 @@ function BingoCard(oid, parent, xscale = 1, yscale = 1) {
             strokeThickness: 3
         }
     );
-    text.anchor.set(0.5, 0.35)
+    text.anchor.set(0.5, 0.35);
     text.x = g.width / 2;
     text.y = g.height;
     g.addChild(text);
@@ -409,9 +405,9 @@ function BingoCard(oid, parent, xscale = 1, yscale = 1) {
             if (child !== text) {
                 child.destroy();
             }
-        })
+        });
 
-        let size = Math.floor(Math.sqrt(cells.length))
+        let size = Math.floor(Math.sqrt(cells.length));
 
         for (let col = 0; col < size; col++) {
             for (let row = 0; row < size; row++) {
@@ -420,13 +416,13 @@ function BingoCard(oid, parent, xscale = 1, yscale = 1) {
                 let cell = cells[cidx];
                 cell.cidx = cidx;
 
-                let c = makeCell(cell, size, oid, xscale, yscale)
+                let c = makeCell(cell, size, oid, xscale, yscale);
                 c.x = (c.width + CELL_PAD) * row + CELL_PAD;
                 c.y = (c.height + CELL_PAD) * col + CELL_PAD;
                 g.addChild(c);
             }
         }
-    }
+    };
 
     return g;
 }
@@ -435,7 +431,7 @@ function makeText() {
 
     const PAD = 5;
 
-    const t =  new PIXI.Text("", {
+    const t = new PIXI.Text("", {
         fontFamily: 'Hack',
         fontSize: 38,
         fill: 0xFFFFFF,
@@ -448,13 +444,13 @@ function makeText() {
 
     t.x = WIDTH / 2;
     t.y = PORTRAIT ? HEIGHT / 2 : HEIGHT / 12;
-    t.anchor.set(0.5, 0.5)
+    t.anchor.set(0.5, 0.5);
 
-    t._display = function(text, timeout) {
-        app.stage.children.sort((a,b) => {
+    t._display = function (text, timeout) {
+        app.stage.children.sort((a, _) => {
             return a === t ? 1 : 0;
-        })
-        t.text = text
+        });
+        t.text = text;
 
         if (t._to) {
             window.clearTimeout(t._to);
@@ -462,7 +458,7 @@ function makeText() {
         t._to = window.setTimeout(() => {
             t.text = ""
         }, timeout)
-    }
+    };
 
     return t;
 }
@@ -472,13 +468,12 @@ app.stage.addChild(TEXT);
 
 let XSCALE, YSCALE;
 if (PORTRAIT) {
-    XSCALE = (WIDTH) / ((CARD_WIDTH + CARD_PAD * 2) * COLS + CARD_PAD * 2)
+    XSCALE = (WIDTH) / ((CARD_WIDTH + CARD_PAD * 2) * COLS + CARD_PAD * 2);
     YSCALE = (HEIGHT / 3) / ((CARD_HEIGHT + CARD_PAD * 4) * ROWS + CARD_PAD * 4)
 } else {
-    XSCALE = (WIDTH / 3) / ((CARD_WIDTH + CARD_PAD * 2) * COLS + CARD_PAD * 2)
+    XSCALE = (WIDTH / 3) / ((CARD_WIDTH + CARD_PAD * 2) * COLS + CARD_PAD * 2);
     YSCALE = (HEIGHT) / ((CARD_HEIGHT + CARD_PAD * 4) * ROWS + CARD_PAD * 4)
 }
-
 </script>
 </body>
 </html>

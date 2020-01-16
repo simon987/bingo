@@ -1,10 +1,13 @@
 import logging
 
-from flask import Flask, request, send_file, session, Response
+from flask import Flask, request, send_file, session
 from flask_socketio import Namespace, SocketIO, emit, join_room
 
 from common import config, db
 from models import BingoGame, GameState, GameMode, User
+from util import is_valid_id
+
+INVALID_ID_ERR = "Invalid identifier"
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config["FLASK_SECRET"]
@@ -108,6 +111,13 @@ class BingoNamespace(Namespace):
         room = message["room"]
         log("create_game", message, room)
 
+        if not is_valid_id(room):
+            emit("create_game_rsp", {
+                "created": False,
+                "error": INVALID_ID_ERR
+            }, room=room)
+            return
+
         game = db.get_game(room)
         if game.state is GameState.CREATING:
             game.state = GameState.PLAYING
@@ -127,6 +137,13 @@ class BingoNamespace(Namespace):
         log("join", message)
 
         room = message["room"]
+        name = message["room"]
+
+        if not is_valid_id(room) or not is_valid_id(name):
+            emit("join_rsp", {
+                "error": INVALID_ID_ERR
+            }, room=room)
+            return
 
         user = None
         if "oid" in message:
@@ -138,7 +155,7 @@ class BingoNamespace(Namespace):
                 return
 
         if not user:
-            user = User(name=message["name"])
+            user = User(name=name)
             db.save_user(user)
         session["user"] = user.oid
 
@@ -149,11 +166,6 @@ class BingoNamespace(Namespace):
         join_room(room)
         game.players.add(user.oid)
         db.save_game(game)
-
-        # TODO: Is this useful?
-        emit("room_join", {
-            "name": user.name
-        }, room=room)
 
         emit("join_rsp", {
             "ok": True,
