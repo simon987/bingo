@@ -8,6 +8,7 @@ let CARDS = {};
 let TEXT;
 
 let COLS, ROWS;
+let EXTRA_COLS = 0, EXTRA_ROWS = 0;
 
 let XSCALE, YSCALE;
 
@@ -26,24 +27,21 @@ function calculateDimensions() {
     HEIGHT = window.innerHeight;
     PORTRAIT = WIDTH < HEIGHT;
 
-    if (PORTRAIT) {
-        COLS = 3;
-        ROWS = 2;
+    COLS = 2 + EXTRA_COLS;
+    ROWS = 2 + EXTRA_ROWS;
 
+    if (PORTRAIT) {
         CARD_WIDTH = 0.65 * WIDTH;
         CARD_HEIGHT = (1 / 3) * HEIGHT;
 
-        XSCALE = (WIDTH) / ((CARD_WIDTH + CARD_PAD * 2) * COLS + CARD_PAD * 2)
-        YSCALE = (HEIGHT / 3) / ((CARD_HEIGHT + CARD_PAD * 4) * ROWS + CARD_PAD * 4)
+        XSCALE = (WIDTH) / ((CARD_WIDTH + CARD_PAD) * COLS + CARD_PAD)
+        YSCALE = (HEIGHT / 3) / ((CARD_HEIGHT + CARD_PAD * 2) * ROWS + CARD_PAD * 2)
     } else {
-        COLS = 2;
-        ROWS = 3;
-
         CARD_WIDTH = (1 / 3) * WIDTH;
         CARD_HEIGHT = 0.70 * HEIGHT;
 
-        XSCALE = (WIDTH / 3) / ((CARD_WIDTH + CARD_PAD * 2) * COLS + CARD_PAD * 2)
-        YSCALE = (HEIGHT) / ((CARD_HEIGHT + CARD_PAD * 4) * ROWS + CARD_PAD * 4)
+        XSCALE = (WIDTH / 3) / ((CARD_WIDTH + CARD_PAD) * COLS + CARD_PAD)
+        YSCALE = (HEIGHT) / ((CARD_HEIGHT + CARD_PAD * 2) * ROWS + CARD_PAD * 2)
     }
 }
 
@@ -149,7 +147,7 @@ function makeCell(cell, size, card_oid, xscale, yscale) {
             }
         }
 
-        this.texture = APP.renderer.generateTexture(g, PIXI.SCALE_MODES.LINEAR, 5);
+        this.texture = APP.renderer.generateTexture(g, PIXI.SCALE_MODES.LINEAR, 3);
     }
 
     sprite._destroy = function () {
@@ -189,12 +187,14 @@ function makeCell(cell, size, card_oid, xscale, yscale) {
     return sprite
 }
 
-function BingoCard(oid, parent, xscale = 1, yscale = 1) {
+function BingoCard(oid, parent, small = false) {
 
     let g = new PIXI.Graphics();
 
-
     g._update = function (card) {
+
+        let xscale = small ? XSCALE : 1;
+        let yscale = small ? YSCALE : 1;
 
         g.clear();
         g.setMatrix(new PIXI.Matrix().scale(xscale, yscale));
@@ -300,6 +300,18 @@ function updateCards() {
     let nextCol = [0, 0];
     let counter = 0;
 
+    // Increase room size
+    if (Object.keys(CARDS).length - 2 > (ROWS * COLS * 2)) {
+        if (ROWS > COLS) {
+            EXTRA_COLS += 1;
+        } else {
+            EXTRA_ROWS += 1;
+        }
+        calculateDimensions();
+        updateCards();
+    }
+
+    let toAdd = [];
     Object.keys(CARDS).forEach(key => {
 
         if (key === "SELF") {
@@ -316,15 +328,15 @@ function updateCards() {
 
         } else {
             // Other
-            let nextSide = counter % 2;
-            card.x = (CARD_WIDTH * XSCALE + CARD_PAD) * nextCol[nextSide] + CARD_PAD;
-            card.y = (CARD_HEIGHT * YSCALE + CARD_PAD) * nextRow[nextSide] + CARD_PAD;
+            let nextSide = (counter + 1) % 2;
+            card.x = ((CARD_WIDTH + CARD_PAD) * nextCol[nextSide] + CARD_PAD) * XSCALE;
+            card.y = ((CARD_HEIGHT + CARD_PAD * 2) * nextRow[nextSide] + CARD_PAD * 2) * YSCALE;
 
             if (nextSide === 1) {
                 if (PORTRAIT) {
                     card.y += HEIGHT * (2 / 3);
                 } else {
-                    card.x += WIDTH * (2 / 3) - CARD_PAD / 2;
+                    card.x += WIDTH * (2 / 3);
                 }
             }
 
@@ -334,20 +346,35 @@ function updateCards() {
             } else {
                 nextCol[nextSide] += 1;
             }
-
-            //TODO: if count > row*cols, increase rows
         }
 
         APP.stage.removeChild(card);
-        APP.stage.addChild(card);
         card._update(card._self);
+        toAdd.push(card);
     })
+
+    // Add cards in reverse for z-index
+    for (let i = toAdd.length - 1; i >= 0; i--) {
+        APP.stage.addChild(toAdd[i]);
+    }
 }
 
 window.onresize = function () {
-    calculateDimensions();
     updateCards();
 }
+
+// DEBUG
+let DEBUG = {
+    dupCounter: 0,
+};
+DEBUG.dupCard = function () {
+    DEBUG.dupCounter += 1;
+    const card = new BingoCard(selfOid(), "DEBUG" + DEBUG.dupCounter, true);
+    card._self = CARDS["SELF"]._self
+    CARDS[DEBUG.dupCounter] = card;
+    updateCards();
+}
+
 
 calculateDimensions();
 initApp();

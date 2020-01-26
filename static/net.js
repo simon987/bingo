@@ -42,7 +42,7 @@ function initNet() {
             if (CARDS.hasOwnProperty(msg.card.oid)) {
                 CARDS[msg.card.oid]._update(msg.card)
             } else {
-                const card = new BingoCard(msg.card.oid, msg.parent, XSCALE, YSCALE);
+                const card = new BingoCard(msg.card.oid, msg.parent, true);
                 card._self = msg.card
                 CARDS[msg.card.oid] = card;
                 updateCards();
@@ -52,7 +52,7 @@ function initNet() {
 
     SOCKET.on("get_card_rsp", msg => {
         // Add self card
-        let card = new BingoCard(msg.card.oid, msg.parent, 1.0);
+        let card = new BingoCard(msg.card.oid, msg.parent);
 
         card._self = msg.card;
         CARDS[msg.card.oid] = card;
