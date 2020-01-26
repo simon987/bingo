@@ -17,10 +17,6 @@ socketio = SocketIO(app, async_mode="eventlet")
 logger = logging.getLogger("default")
 
 
-# TODO: alphanum room
-# TODO: alphanum name w/max len
-
-
 @app.route("/")
 def page_index():
     return send_file("web/index.html")
@@ -58,13 +54,11 @@ class BingoNamespace(Namespace):
         cell = card.cells[message["cidx"]]
 
         if not cell.checked or card.last_cell == message["cidx"]:
-            cell.checked = not cell.checked
+            card.check_cell(message["cidx"])
             card.last_cell = message["cidx"]
             db.save_card(card)
 
-            emit("card_state", {
-                "card": card.serialize()
-            }, room=room)
+            emit("card_state", {"card": card.serialize()}, room=room)
 
             if card.moves_until_win() == 0:
                 game = db.get_game(room)
@@ -72,7 +66,7 @@ class BingoNamespace(Namespace):
 
                 if game.should_end():
                     game.state = GameState.ENDED
-                    emit("game_state", {"state": game.state.name})
+                    emit("game_state", {"state": game.state.name}, room=room)
                 db.save_game(game)
 
     def on_get_card(self, message):
@@ -125,10 +119,8 @@ class BingoNamespace(Namespace):
             game.pool = message["pool"]
             db.save_game(game)
 
-            emit("game_state", {
-                "state": game.state.name,
-            }, room=room)
-
+            emit("game_state", {"state": game.state.name, }, room=room)
+            emit("style_state", {"style": game.style}, room=room)
             emit("create_game_rsp", {
                 "created": True,
             })
@@ -162,6 +154,9 @@ class BingoNamespace(Namespace):
         game = db.get_game(message["room"])
         if not game:
             game = BingoGame(room, user.oid)
+        emit("style_state", {
+            "style": game.style
+        })
 
         join_room(room)
         game.players.add(user.oid)

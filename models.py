@@ -10,10 +10,11 @@ import common
 
 class BingoCell:
 
-    def __init__(self, text, checked=False, free=False):
+    def __init__(self, text, checked=False, free=False, shake=False):
         self.text = text
         self.free = free
         self.checked = checked
+        self.shake = shake
 
     def serialize(self):
         return self.__dict__
@@ -26,7 +27,8 @@ class BingoCell:
         return BingoCell(
             text=j["text"],
             free=bool(j["free"]),
-            checked=bool(j["checked"])
+            checked=bool(j["checked"]),
+            shake=bool(j["shake"])
         )
 
 
@@ -51,12 +53,30 @@ class BingoCard:
         }
 
     def moves_until_win(self):
-        return min(
-            *(sum(1 for c in self._row(row) if not c.checked) for row in range(0, self.size)),
-            *(sum(1 for c in self._col(col) if not c.checked) for col in range(0, self.size)),
-            sum(1 for c in self._diag_left() if not c.checked),
-            sum(1 for c in self._diag_right() if not c.checked),
-        )
+        return min(sum(1 for c in line if not c.checked) for line in self._lines())
+
+    def _lines(self):
+        return [
+            *(self._row(row) for row in range(0, self.size)),
+            *(self._col(col) for col in range(0, self.size)),
+            self._diag_left(),
+            self._diag_right(),
+        ]
+
+    def check_cell(self, cell_idx):
+        cell = self.cells[cell_idx]
+        cell.checked = not cell.checked
+        self._update_shaking(cell)
+
+    def _update_shaking(self, cell):
+        for c in self.cells:
+            c.shake = False
+        if cell.checked:
+            for line in self._lines():
+                moves_remaining = sum(1 for c in line if not c.checked)
+                if cell in line and moves_remaining <= self.size / 2 and moves_remaining <= 3:
+                    for c in line:
+                        c.shake = not c.checked
 
     def _row(self, idx):
         return self.cells[idx * self.size:idx * self.size + self.size]
@@ -91,8 +111,24 @@ class GameState(Enum):
 
 
 class BingoGame:
+    _default_style = {
+        "cell": {
+            "base": 0xBD93F9,
+            "checked": 0xFF5555,
+            "hover": 0xFF79C6,
+            "text": 0x111111
+        },
+        "card": {
+            "base": 0xFF5555,
+            "text": 0x50FA7B
+        },
+        "background": 0x282A36,
+        "message": 0xF8F8F2,
+        "font": "'Roboto Mono', 'Lucida Console'"
+    }
+
     def __init__(self, room, admin, mode=GameMode.FREE, pool=None, state=GameState.CREATING,
-                 players=None, winners=None):
+                 players=None, winners=None, style=None):
         self.room = room
         self.mode = mode
         self.admin = admin
@@ -106,6 +142,9 @@ class BingoGame:
         if winners is None:
             winners = []
         self.winners = winners
+        if style is None:
+            style = BingoGame._default_style
+        self.style = style
 
     def should_end(self):
         # TODO: add winner count
@@ -126,6 +165,7 @@ class BingoGame:
             "pool": self.pool,
             "players": list(self.players),
             "winners": self.winners,
+            "style": self.style,
         }
 
     @staticmethod
@@ -137,7 +177,8 @@ class BingoGame:
             admin=j["admin"],
             state=GameState[j["state"]],
             players=set(j["players"]),
-            winners=j["winners"]
+            winners=j["winners"],
+            style=j["style"],
         )
 
 
