@@ -63,7 +63,7 @@ function onCreateGameSubmit() {
         "mode": gameMode,
         "maximum_size": maximumSize,
         "middle_free": middleFree,
-        "pool": pool.split(/\s+/).map(w => w.trim())
+        "pool": pool.split(/\n+/).map(w => w.trim())
     })
     return false;
 }
@@ -255,6 +255,20 @@ function BingoCard(oid, parent, small = false) {
         }
     }
 
+    g._destroy = function () {
+        let toDestroy = [];
+        g.children.forEach(child => {
+            if (child !== this._text) {
+                toDestroy.push(child);
+            }
+        })
+        toDestroy.forEach(x => {
+            x._destroy();
+        })
+
+        g.destroy({texture: true, baseTexture: true, children: true});
+    }
+
     return g;
 }
 
@@ -265,8 +279,7 @@ function makeText() {
     const t = new PIXI.Text("", {
         fontFamily: STYLE.font,
         fontSize: 38,
-        fill: STYLE.cell.text,
-        strokeThickness: 2,
+        fill: STYLE.message,
         align: "left",
         breakWords: true,
         wordWrap: true,
@@ -360,6 +373,7 @@ function updateCards() {
 }
 
 window.onresize = function () {
+    calculateDimensions();
     updateCards();
 }
 

@@ -21,7 +21,11 @@ function initNet() {
     })
 
     SOCKET.on("end_message", msg => {
-        alert(msg.text)
+        if (msg.replay) {
+            createGameModal();
+        } else {
+            TEXT.text = msg.text;
+        }
     })
 
     SOCKET.on("game_state", msg => {
@@ -33,7 +37,10 @@ function initNet() {
                 "room": ROOM,
             })
         } else if (msg.state === "ENDED") {
-            SOCKET.emit("get_end_message")
+            SOCKET.emit("get_end_message", {
+                "oid": selfOid(),
+                "room": ROOM,
+            })
         }
     })
 
@@ -53,8 +60,14 @@ function initNet() {
     SOCKET.on("get_card_rsp", msg => {
         // Add self card
         let card = new BingoCard(msg.card.oid, msg.parent);
-
         card._self = msg.card;
+
+        Object.keys(CARDS).forEach(key => {
+            if (key !== "SELF") {
+                CARDS[key]._destroy();
+            }
+        });
+        CARDS = {};
         CARDS[msg.card.oid] = card;
         CARDS["SELF"] = card;
         updateCards();
@@ -81,7 +94,10 @@ function initNet() {
                 "room": ROOM,
             })
         } else if (msg.state === "ENDED") {
-            SOCKET.emit("get_end_message")
+            SOCKET.emit("get_end_message", {
+                "oid": selfOid(),
+                "room": ROOM,
+            })
         }
     });
 

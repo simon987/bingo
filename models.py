@@ -102,6 +102,8 @@ class BingoCard:
 
 class GameMode(Enum):
     FREE = "free"
+    ADMIN = "admin"
+    CPU = "cpu"
 
 
 class GameState(Enum):
@@ -124,11 +126,11 @@ class BingoGame:
         },
         "background": 0x282A36,
         "message": 0xF8F8F2,
-        "font": "'Roboto Mono', 'Lucida Console'"
+        "font": "Hack, 'Roboto Mono', 'Lucida Console'"
     }
 
     def __init__(self, room, admin, mode=GameMode.FREE, pool=None, state=GameState.CREATING,
-                 players=None, winners=None, style=None):
+                 players=None, winners=None, style=None, valid_cells=None):
         self.room = room
         self.mode = mode
         self.admin = admin
@@ -145,6 +147,9 @@ class BingoGame:
         if style is None:
             style = BingoGame._default_style
         self.style = style
+        if valid_cells is None:
+            valid_cells = []
+        self.valid_cells = valid_cells
 
     def should_end(self):
         # TODO: add winner count
@@ -166,6 +171,7 @@ class BingoGame:
             "players": list(self.players),
             "winners": self.winners,
             "style": self.style,
+            "valid_cells": self.valid_cells,
         }
 
     @staticmethod
@@ -179,6 +185,7 @@ class BingoGame:
             players=set(j["players"]),
             winners=j["winners"],
             style=j["style"],
+            valid_cells=j["valid_cells"],
         )
 
 

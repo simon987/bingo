@@ -7,7 +7,8 @@ from common import config, db
 from models import BingoGame, GameState, GameMode, User
 from util import is_valid_id
 
-INVALID_ID_ERR = "Invalid identifier"
+ERR_INVALID_ID = "Invalid identifier"
+ERR_BAD_REQUEST = "Bad request"
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config["FLASK_SECRET"]
@@ -39,11 +40,27 @@ class BingoNamespace(Namespace):
     def __init__(self):
         super().__init__("/socket")
 
-    def on_get_end_message(self):
-        log("get_end_message", {})
-        emit("end_message", {
-            "text": "Game has ended, replay?"
-        })
+    def on_get_end_message(self, message):
+        room = message["room"] if "room" in message else None
+        log("get_end_message", message, room=room)
+
+        if room is None or "oid" not in message:
+            emit("create_game_rsp", {
+                "error": ERR_BAD_REQUEST
+            })
+            return
+
+        game = db.get_game(room)
+        if game.admin == message["oid"]:
+            emit("end_message", {
+                "text": "Game has ended, replay?",
+                "replay": True,
+            })
+        else:
+            emit("end_message", {
+                "text": "Waiting for %s to restart game..." % (db.get_user(game.admin).name, ),
+                "replay": False,
+            })
 
     def on_cell_click(self, message):
         room = message["room"]
@@ -52,6 +69,9 @@ class BingoNamespace(Namespace):
         user = db.get_user(message["oid"])
         card = db.get_card(message["card"])
         cell = card.cells[message["cidx"]]
+        game = db.get_game(room)
+
+        # if game.mode == GameMode.FREE or game.mode:
 
         if not cell.checked or card.last_cell == message["cidx"]:
             card.check_cell(message["cidx"])
@@ -84,15 +104,15 @@ class BingoNamespace(Namespace):
             db.save_card(card)
             db.save_user(user)
 
-            emit("card_state", {
-                "card": card.serialize(),
-                "parent": user.name
-            }, room=room)
-
         emit("get_card_rsp", {
             "card": card.serialize(),
             "parent": user.name
         })
+
+        emit("card_state", {
+            "card": card.serialize(),
+            "parent": user.name
+        }, room=room)
 
         for player in game.players:
             if player != user.oid:
@@ -102,21 +122,35 @@ class BingoNamespace(Namespace):
                     emit("card_state", {"card": other_card.serialize(), "parent": other_user.name})
 
     def on_create_game(self, message):
-        room = message["room"]
+        room = message["room"] if "room" in message else None
         log("create_game", message, room)
+
+        if "oid" not in message or room is None or "mode" not in message or "pool" not in message:
+            emit("create_game_rsp", {
+                "created": False,
+                "error": ERR_BAD_REQUEST
+            })
+            return
 
         if not is_valid_id(room):
             emit("create_game_rsp", {
                 "created": False,
-                "error": INVALID_ID_ERR
-            }, room=room)
+                "error": ERR_INVALID_ID
+            })
             return
 
         game = db.get_game(room)
-        if game.state is GameState.CREATING:
+        if game.state is GameState.CREATING or (game.state is GameState.ENDED and game.admin == message["oid"]):
+            for oid in game.players:
+                player = db.get_user(oid)
+                if room in player.cards:
+                    del player.cards[room]
+                    db.save_user(player)
+
             game.state = GameState.PLAYING
             game.mode = GameMode[message["mode"]]
             game.pool = message["pool"]
+            game.admin = message["oid"]
             db.save_game(game)
 
             emit("game_state", {"state": game.state.name, }, room=room)
@@ -129,11 +163,11 @@ class BingoNamespace(Namespace):
         log("join", message)
 
         room = message["room"]
-        name = message["room"]
+        name = message["name"]
 
         if not is_valid_id(room) or not is_valid_id(name):
             emit("join_rsp", {
-                "error": INVALID_ID_ERR
+                "error": ERR_INVALID_ID
             }, room=room)
             return
 
