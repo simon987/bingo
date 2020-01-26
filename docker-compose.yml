@@ -1,0 +1,20 @@
+version: "2.1"
+
+services:
+  bingo:
+    build: .
+    ports:
+      - 3000:80
+    environment:
+      - "BINGO_API_PORT=80"
+      - "BINGO_API_HOST=0.0.0.0"
+      - "BINGO_REDIS_PORT=6379"
+      - "BINGO_REDIS_HOST=redis"
+      - "BINGO_FLASK_SECRET=changeme"
+      - "BINGO_VERBOSE=True"
+    depends_on:
+      redis:
+        condition: service_started
+    restart: always
+  redis:
+    image: redis
