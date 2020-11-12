@@ -83,7 +83,7 @@ function initNet() {
         document.getElementById("create-user").style.display = "none";
 
         localStorage.setItem("oid", msg.oid)
-        document.title = msg.oid
+        document.title = ROOM
 
         if (msg.state === "CREATING") {
             createGameModal();
